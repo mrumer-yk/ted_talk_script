@@ -615,7 +615,7 @@ def main() -> None:
         print("Extracting audio for VAD...")
         wav_path = extract_wav_for_vad(video_path, tmp)
         pcm16, sr = read_wav_as_bytes(wav_path)
-        if HAS_WEBRTCVAD:
+        if WEBRTCVAD_AVAILABLE:
             print("Running WebRTC VAD...")
         else:
             print("webrtcvad not available; using lightweight fallback VAD.")
