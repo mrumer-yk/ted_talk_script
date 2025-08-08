@@ -1,34 +1,35 @@
-# Use Python 3.11 slim image
+# Use Python 3.11 slim image for faster builds
 FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies in one layer
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Copy requirements and install Python dependencies
+# Copy requirements first for better Docker caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application files
-COPY . .
+# Install Python dependencies with optimizations
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+# Copy only necessary application files
+COPY web_app.py tool.py ./
 
 # Create output directory
 RUN mkdir -p /app/out
-
-# Expose port (Railway will set the PORT environment variable)
-EXPOSE 8080
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 
-# Update web_app.py to use PORT environment variable
-RUN sed -i 's/port=7864/port=int(os.environ.get("PORT", 8080))/' web_app.py
+# Expose port
+EXPOSE 8080
 
-# Start the application
-CMD ["python", "web_app.py"]
+# Use gunicorn for production instead of Flask dev server
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--timeout", "300", "web_app:app"]
