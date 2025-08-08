@@ -5,5 +5,4 @@ tqdm>=4.66.0
 Flask>=3.0.0
 Werkzeug>=3.0.0
 ultralytics>=8.0.0
-webrtcvad>=2.0.10
 gunicorn>=21.0.0

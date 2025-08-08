@@ -23,9 +23,16 @@ except Exception:
     pass
 
 try:
-    import webrtcvad  # type: ignore
+    import webrtcvad
+    WEBRTCVAD_AVAILABLE = True
     HAS_WEBRTCVAD = True
+except ImportError:
+    WEBRTCVAD_AVAILABLE = False
+    webrtcvad = None  # type: ignore
+    HAS_WEBRTCVAD = False
 except Exception:
+    WEBRTCVAD_AVAILABLE = False
+    webrtcvad = None  # type: ignore
     HAS_WEBRTCVAD = False
 
 
@@ -124,7 +131,9 @@ def read_wav_as_bytes(wav_path: str) -> Tuple[bytes, int]:
 # --- VAD paths ---
 
 def run_vad_webrtc(pcm16: bytes, sample_rate: int, frame_ms: int, vad_aggr: int) -> np.ndarray:
-    vad = webrtcvad.Vad(vad_aggr)  # type: ignore[name-defined]
+    if not WEBRTCVAD_AVAILABLE or webrtcvad is None:
+        return run_vad_fallback(pcm16, sample_rate, frame_ms)
+    vad = webrtcvad.Vad(vad_aggr)
     frame_bytes = int(sample_rate * (frame_ms / 1000.0) * 2)
     num_frames = len(pcm16) // frame_bytes
     flags = np.zeros(num_frames, dtype=np.uint8)
@@ -182,7 +191,7 @@ def run_vad_fallback(pcm16: bytes, sample_rate: int, frame_ms: int) -> np.ndarra
 
 
 def run_vad(pcm16: bytes, sample_rate: int, frame_ms: int, vad_aggr: int) -> np.ndarray:
-    if HAS_WEBRTCVAD:
+    if WEBRTCVAD_AVAILABLE:
         return run_vad_webrtc(pcm16, sample_rate, frame_ms, vad_aggr)
     return run_vad_fallback(pcm16, sample_rate, frame_ms)
 
