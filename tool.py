@@ -23,17 +23,11 @@ except Exception:
     pass
 
 try:
-    import webrtcvad
+    import webrtcvad  # type: ignore
     WEBRTCVAD_AVAILABLE = True
-    HAS_WEBRTCVAD = True
 except ImportError:
     WEBRTCVAD_AVAILABLE = False
     webrtcvad = None  # type: ignore
-    HAS_WEBRTCVAD = False
-except Exception:
-    WEBRTCVAD_AVAILABLE = False
-    webrtcvad = None  # type: ignore
-    HAS_WEBRTCVAD = False
 
 
 @dataclass
