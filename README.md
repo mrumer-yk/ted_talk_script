@@ -1,5 +1,16 @@
 # Automated TED Talk Filtering Pipeline
 
+<!-- Front-page workflow diagram (vector) -->
+![Workflow Overview (SVG)](docs/workflow_readme.svg)
+
+<!-- PNG fallback for viewers without SVG support -->
+<details>
+<summary>PNG fallback</summary>
+
+![Workflow Overview PNG](docs/workflow_readme@2x.png)
+
+</details>
+
 This project is a fully automated pipeline designed to download, clip, and filter TED Talk videos to create a high-quality collection of single-speaker clips. The pipeline is built to be robust, avoiding duplicates, excluding low-quality content like YouTube Shorts, and ensuring videos do not have hardcoded subtitles.
 
 ## Core Features

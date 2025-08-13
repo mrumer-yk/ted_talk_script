@@ -1,0 +1,44 @@
+flowchart LR
+    A([Start]) --> B[1 batch_ted_clipper py]
+    B --> C{Fetch list}
+    C -->|ytdlp TED channel| D[Video IDs]
+    D --> E[Download video to TEMP_DIR]
+    E --> F[Create 5 x 30s clips using tool py and ffmpeg]
+    F --> G[Create speaker folder in ted_clips_new]
+    G --> H{Parallel filter up to MAX_PARALLEL_FILTERS}
+    H --> I1[process_single_speaker py]
+    H --> I2[process_single_speaker py]
+    H --> I3[process_single_speaker py]
+    H --> I4[process_single_speaker py]
+
+    I1 --> J1[ted_video_filter HOG scoring]
+    I2 --> J2[ted_video_filter HOG scoring]
+    I3 --> J3[ted_video_filter HOG scoring]
+    I4 --> J4[ted_video_filter HOG scoring]
+
+    J1 --> K1[Copy best clip to filtered_videos_2]
+    J2 --> K2[Copy best clip to filtered_videos_2]
+    J3 --> K3[Copy best clip to filtered_videos_2]
+    J4 --> K4[Copy best clip to filtered_videos_2]
+
+    E -. per video .-> X[cleanup_temp_video]
+    B -. on exit .-> Y[remove TEMP_DIR]
+    J1 -. per worker .-> Z1[filter TEMP_DIR cleanup]
+    J2 -. per worker .-> Z2[filter TEMP_DIR cleanup]
+    J3 -. per worker .-> Z3[filter TEMP_DIR cleanup]
+    J4 -. per worker .-> Z4[filter TEMP_DIR cleanup]
+
+    classDef primary fill:#e8f4ff,stroke:#1e88e5,stroke-width:1px,color:#0d47a1;
+    classDef action fill:#e8ffe8,stroke:#43a047,stroke-width:1px,color:#1b5e20;
+    classDef store fill:#fff3e0,stroke:#fb8c00,stroke-width:1px,color:#e65100;
+    classDef note fill:#f3e5f5,stroke:#8e24aa,stroke-width:1px,color:#4a148c;
+
+    B:::primary
+    E:::action
+    F:::action
+    G:::store
+    H:::primary
+    I1:::primary; I2:::primary; I3:::primary; I4:::primary
+    J1:::action; J2:::action; J3:::action; J4:::action
+    K1:::store; K2:::store; K3:::store; K4:::store
+    X:::note; Y:::note; Z1:::note; Z2:::note; Z3:::note; Z4:::note
