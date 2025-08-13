@@ -4,6 +4,8 @@ This document shows how the components fit together, which file runs first, how 
 
 ## High-Level Workflow
 
+![Pipeline Workflow](workflow.png)
+
 ```text
 [User]
   |

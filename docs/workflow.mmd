@@ -1,0 +1,47 @@
+flowchart TD
+    U[User] -->|Run full pipeline| B[batch_ted_clipper.py]
+
+    subgraph Fetch_And_Clip
+        B --> FVU[fetch_video_urls via ytdlp TED channel]
+        B --> DL[download_video to TEMP_DIR mp4]
+        DL --> CL[create_clips using tool py and ffmpeg]
+        CL --> QC{Clips ready in ted_clips_new per speaker}
+        DL --> CU[cleanup_temp_video]
+    end
+
+    QC --> |for each speaker| PAR[Launch parallel filters]
+
+    subgraph Parallel_Filtering
+        direction TB
+        PAR --> P1[process_single_speaker py speaker A]
+        PAR --> P2[process_single_speaker py speaker B]
+        PAR --> P3[process_single_speaker py speaker C]
+        PAR --> P4[process_single_speaker py speaker D]
+        note1[At most MAX_PARALLEL_FILTERS\nconcurrent workers]:::note
+    end
+
+    classDef note fill:#eef,stroke:#99f,color:#000;
+
+    P1 --> TVF1[ted_video_filter process_speaker_folder HOG scoring]
+    P2 --> TVF2[ted_video_filter process_speaker_folder HOG scoring]
+    P3 --> TVF3[ted_video_filter process_speaker_folder HOG scoring]
+    P4 --> TVF4[ted_video_filter process_speaker_folder HOG scoring]
+
+    TVF1 --> CP1[copy_filtered_clips to filtered_videos_2]
+    TVF2 --> CP2[copy_filtered_clips to filtered_videos_2]
+    TVF3 --> CP3[copy_filtered_clips to filtered_videos_2]
+    TVF4 --> CP4[copy_filtered_clips to filtered_videos_2]
+
+    subgraph Cleanup
+        B --> FT[final TEMP_DIR cleanup]
+        P1 --> VF1[ted_video_filter clean filter TEMP_DIR]
+        P2 --> VF2[ted_video_filter clean filter TEMP_DIR]
+        P3 --> VF3[ted_video_filter clean filter TEMP_DIR]
+        P4 --> VF4[ted_video_filter clean filter TEMP_DIR]
+    end
+
+    subgraph Optional_Runner
+        U -->|Filter existing local clips| RF[run_filter py]
+        RF --> TVFmain[ted_video_filter main]
+        TVFmain --> CPmain[copy to filtered_videos_2]
+    end
