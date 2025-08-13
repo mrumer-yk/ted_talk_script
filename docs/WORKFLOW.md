@@ -4,7 +4,16 @@ This document shows how the components fit together, which file runs first, how 
 
 ## High-Level Workflow
 
-![Pipeline Workflow](workflow.png)
+<!-- Prefer vector for clarity -->
+![Pipeline Workflow (SVG)](workflow.svg)
+
+<!-- PNG fallback (hi-res) -->
+<details>
+<summary>PNG fallback</summary>
+
+![Pipeline Workflow PNG](workflow@2x.png)
+
+</details>
 
 ```text
 [User]
