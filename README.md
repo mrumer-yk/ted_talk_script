@@ -13,6 +13,10 @@
 
 This project is a fully automated pipeline designed to download, clip, and filter TED Talk videos to create a high-quality collection of single-speaker clips. The pipeline is built to be robust, avoiding duplicates, excluding low-quality content like YouTube Shorts, and ensuring videos do not have hardcoded subtitles.
 
+## Filtered Samples (after 2 stages)
+- View a sample collection of filtered outputs here:
+  https://drive.google.com/drive/folders/1z20ds0_tdv1kHI5o3MmsR9vfpp9cC8Pu?usp=drive_link
+
 ## Core Features
 
 - **Automated Downloading**: Fetches videos directly from the official TED YouTube channel (`@TED`).
