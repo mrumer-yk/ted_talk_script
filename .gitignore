@@ -98,6 +98,21 @@ __pypackages__/
 celerybeat-schedule
 celerybeat.pid
 
+# Project-specific folders and files
+ted_clips_new/
+filtered_videos_2/
+filtered_ted_clips/
+downloaded_videos/
+
+# Video files
+*.mp4
+*.webm
+*.mkv
+
+# Reports
+filter_report.txt
+
+
 # SageMath parsed files
 *.sage.py
 

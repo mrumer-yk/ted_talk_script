@@ -226,7 +226,7 @@ def detect_persons_yolo(frame: np.ndarray, model: object, conf: float = 0.4, min
             cls = boxes.cls.cpu().numpy()
             xyxy = boxes.xyxy.cpu().numpy()
             for i, c in enumerate(cls):
-                if int(c) != 0:  # person class
+                if int(c) != 0:  # person class is 0, skip non-person classes
                     continue
                 x1, y1, x2, y2 = xyxy[i]
                 box_area = max(0.0, (x2 - x1) * (y2 - y1))
@@ -558,9 +558,18 @@ def cut_clip_ffmpeg(video_path: str, out_path: str, start_sec: float, duration_s
         subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
 
-def sanitize_title(path: str) -> str:
-    base = os.path.basename(path)
-    name, _ = os.path.splitext(base)
+def get_speaker_from_title(title: str) -> str:
+    parts = title.split('|')
+    if len(parts) >= 2:
+        # Typically 'Title | Speaker | TED', so speaker is the second part
+        speaker = parts[1].strip()
+        # Avoid generic names like 'TED'
+        if speaker.lower() != 'ted':
+            return speaker
+    # Fallback to the original title if speaker not found
+    return title
+
+def sanitize_name(name: str) -> str:
     safe = "".join(c for c in name if c.isalnum() or c in (" ", "_", "-"))
     return safe.strip().replace(" ", "_")
 
@@ -671,8 +680,12 @@ def main() -> None:
         print("No non-overlapping windows found.", file=sys.stderr)
         sys.exit(3)
 
-    title = sanitize_title(video_path)
-    clip_dir = os.path.join(args.output_dir, f"{title}_clips")
+    # Extract speaker name from video title to use as folder name
+    video_title = os.path.splitext(os.path.basename(video_path))[0]
+    speaker_name = get_speaker_from_title(video_title)
+    sane_speaker_name = sanitize_name(speaker_name)
+
+    clip_dir = os.path.join(args.output_dir, sane_speaker_name)
     os.makedirs(clip_dir, exist_ok=True)
 
     print("Cutting clips...")
@@ -682,6 +695,7 @@ def main() -> None:
         print(f"Saved {out_path} (speech_ratio={s.speech_ratio:.2f})")
 
     print("Done.")
+    print(f"Clips saved in: {os.path.abspath(clip_dir)}")
 
 
 if __name__ == "__main__":

@@ -1,171 +1,81 @@
-# 🎬 TED Talk Clip Extractor
+# Automated TED Talk Filtering Pipeline
 
-AI-powered video analysis tool that extracts the best speaker-focused moments from TED talks and educational videos. Features a beautiful modern web interface with real-time processing and smart filtering.
+This project is a fully automated pipeline designed to download, clip, and filter TED Talk videos to create a high-quality collection of single-speaker clips. The pipeline is built to be robust, avoiding duplicates, excluding low-quality content like YouTube Shorts, and ensuring videos do not have hardcoded subtitles.
 
-## ✨ Features
+## Core Features
 
-- **🎥 Smart Video Processing**: Automatically identifies and extracts 30-second clips where only the speaker is present
-- **🧠 AI-Powered Analysis**: Uses advanced computer vision (HOG, YOLOv8) to detect people and filter out slides
-- **🎨 Modern Web Interface**: Beautiful, responsive design inspired by modern web applications
-- **📱 Multi-Input Support**: Upload local videos or paste YouTube links
-- **⚡ Real-time Progress**: Live progress tracking with Server-Sent Events
-- **🔍 Smart Filtering**: Avoids presentation slides and audience shots
-- **📦 Easy Download**: Direct download and preview options for generated clips
+- **Automated Downloading**: Fetches videos directly from the official TED YouTube channel (`@TED`).
+- **Smart Filtering**:
+    - Excludes YouTube Shorts (videos shorter than 3 minutes).
+    - Skips videos with titles indicating hardcoded subtitles (e.g., "subtitles", "captions").
+    - Avoids re-processing speakers that are already in the output collection.
+- **Two-Stage Clip Filtering**:
+    1.  **Clipping**: Each downloaded video is clipped into 5 segments of 30 seconds each.
+    2.  **Person Detection**: Each clip is analyzed to ensure it contains a single speaker. It uses HOG (Histogram of Oriented Gradients) for reliable person detection.
+- **Parallel Processing**: The second-stage filtering runs in parallel (up to 4 concurrent processes) to maximize throughput.
+- **Continuous Operation**: The main script runs continuously until it collects a target number of filtered videos (currently set to 2000).
 
-## 🚀 Live Demo
+## How It Works
 
-Deploy to Railway: [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/khan1267s/tedtalk_new_version)
+The pipeline is orchestrated by `batch_ted_clipper.py` and relies on several other scripts and configuration files.
 
-## 🛠️ Local Development
+### 1. Video Search & Download Mechanism
 
-### Prerequisites
+- **File**: `batch_ted_clipper.py`
 
-- Python 3.11+
-- FFmpeg (for video processing)
-- Git
+The process starts by fetching a list of video URLs from the official `@TED` YouTube channel's video page. It uses `yt-dlp` with the `--flat-playlist` option to quickly retrieve a list of video IDs and titles without downloading the full video information, which is much faster.
 
-### Installation
+Once the list is fetched, the script iterates through it. For each video:
+1.  **Speaker Name Extraction**: The speaker's name is extracted from the video title.
+2.  **Duplicate Check**: It checks if a speaker with the same sanitized name already exists in the `ted_clips_new/` (processing queue) or `filtered_videos_2/` (final output) folders. If a duplicate is found, the video is skipped.
+3.  **Download**: The video is downloaded using `yt-dlp`. During this step, another filter is applied (`--match-filter "duration > 180"`) to ensure Shorts are not downloaded. It also prevents subtitle files from being downloaded.
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/khan1267s/tedtalk_new_version.git
-   cd tedtalk_new_version
-   ```
+### 2. Clipping and Filtering
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+- **Main Orchestrator**: `batch_ted_clipper.py`
+- **Clipping & Detection Logic**: `tool.py`
+- **Per-Speaker Filter Runner**: `process_single_speaker.py`
+- **Configuration**: `filter_config.py`
 
-3. **Run the application**
-   ```bash
-   python web_app.py
-   ```
+This is a two-stage process:
 
-4. **Open your browser**
-   Navigate to `http://localhost:7864`
+1.  **Stage 1: Clipping**
+    - The downloaded video is passed to `tool.py` to be clipped into 5 segments. These raw clips are saved in a speaker-specific folder inside `ted_clips_new/`.
 
-## 🐳 Docker Deployment
+2.  **Stage 2: Filtering**
+    - As soon as clips for a speaker are created, `batch_ted_clipper.py` launches a separate, parallel process using `process_single_speaker.py`.
+    - This script runs the HOG person detector on each of the 5 clips for that speaker.
+    - It uses the thresholds defined in `filter_config.py` to find the best clip with only one person.
+    - If a valid clip is found, it is copied to the final `filtered_videos_2/` directory.
 
-```bash
-# Build the image
-docker build -t ted-clip-extractor .
+## Key Files in the Project
 
-# Run the container
-docker run -p 8080:8080 ted-clip-extractor
-```
+- `batch_ted_clipper.py`: The main entry point and orchestrator for the entire pipeline.
+- `tool.py`: Contains the core logic for video clipping and person detection (both YOLO and HOG).
+- `process_single_speaker.py`: A wrapper script that runs the second-stage filtering for a single speaker's folder. This is what allows for parallel processing.
+- `filter_config.py`: A configuration file where you can set input/output directories and tune the filtering thresholds.
+- `ted_video_filter.py`: The script that contains the filtering logic used by `process_single_speaker.py`.
 
-## 🚂 Railway Deployment
+## How to Use This Project
 
-1. **Fork this repository**
-2. **Connect to Railway**
-   - Visit [Railway](https://railway.app)
-   - Connect your GitHub account
-   - Select this repository
-3. **Deploy automatically**
-   - Railway will detect the `Dockerfile` and `railway.json`
-   - Deployment starts automatically
+1.  **Prerequisites**:
+    - Python 3
+    - FFmpeg installed and available in your system's PATH.
+    - Required Python packages: `opencv-python`, `numpy`, `ultralytics`, `yt-dlp`. You can install them with:
+      ```bash
+      pip install opencv-python numpy ultralytics yt-dlp
+      ```
 
-## 📖 How It Works
+2.  **Configuration**:
+    - Open `filter_config.py` to adjust the input (`ted_clips_new`) and output (`filtered_videos_2`) directories if needed.
+    - You can also tune the detection thresholds here.
 
-### Video Processing Pipeline
+3.  **Run the Pipeline**:
+    - Execute the main script from your terminal:
+      ```bash
+      python batch_ted_clipper.py
+      ```
 
-1. **Download/Upload**: Accepts YouTube URLs or local video files
-2. **Audio Analysis**: Extracts audio and performs Voice Activity Detection (VAD)
-3. **Visual Analysis**: 
-   - Detects people using HOG or YOLOv8
-   - Identifies presentation slides using image analysis
-   - Filters out audience shots
-4. **Clip Generation**: Selects the best 30-second segments with high speech activity
-5. **Output**: Generates downloadable MP4 clips
-
-### Technology Stack
-
-- **Backend**: Flask (Python)
-- **Video Processing**: FFmpeg, OpenCV
-- **AI/ML**: YOLOv8 (Ultralytics), HOG Detection
-- **Audio**: WebRTC VAD, NumPy
-- **Frontend**: HTML5, CSS3, JavaScript
-- **Deployment**: Docker, Railway
-
-## 🎯 Usage
-
-### Web Interface
-
-1. **Input**: Paste a YouTube URL or upload a video file
-2. **Configure**: Set number of clips (3-10) and duration (20-45 seconds)
-3. **Options**: 
-   - ✅ Strict person-only filtering
-   - ✅ Avoid presentation slides
-4. **Process**: Click "🚀 Create Clips" and watch real-time progress
-5. **Download**: Preview and download generated clips
-
-### Command Line
-
-```bash
-python tool.py "https://www.youtube.com/watch?v=VIDEO_ID" \\
-  --output-dir ./output \\
-  --num-clips 5 \\
-  --clip-duration 30 \\
-  --strict-person-only \\
-  --avoid-slides
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-- `PORT`: Server port (default: 7864, Railway sets automatically)
-- `PYTHONUNBUFFERED`: Set to 1 for proper logging
-
-### Processing Options
-
-- **Number of clips**: 3, 5, or 10 clips
-- **Clip duration**: 20, 30, or 45 seconds
-- **Detection method**: HOG (fast) or YOLOv8 (accurate)
-- **Strict filtering**: Ensures only single-person scenes
-- **Slide detection**: Filters out presentation slides
-
-## 📁 Project Structure
-
-```
-├── web_app.py              # Flask web application
-├── tool.py                 # Core video processing logic
-├── requirements.txt        # Python dependencies
-├── Dockerfile             # Docker configuration
-├── railway.json           # Railway deployment config
-├── README.md              # This file
-└── out/                   # Generated clips output
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [YOLOv8](https://github.com/ultralytics/ultralytics) for object detection
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) for YouTube video downloading
-- [Flask](https://flask.palletsprojects.com/) for the web framework
-- [OpenCV](https://opencv.org/) for computer vision
-- [Railway](https://railway.app/) for easy deployment
-
-## 🐛 Issues & Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](https://github.com/khan1267s/tedtalk_new_version/issues) page
-2. Create a new issue with detailed information
-3. Include error logs and steps to reproduce
-
----
-
-**Made with ❤️ for better video content creation**
+4.  **Monitor Progress**:
+    - The script will log its progress to the console.
+    - You can monitor the `ted_clips_new/` folder to see the raw clips being created and the `filtered_videos_2/` folder for the final, high-quality filtered clips.
