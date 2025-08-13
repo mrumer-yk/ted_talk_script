@@ -50,14 +50,24 @@ Once the list is fetched, the script iterates through it. For each video:
 
 This is a two-stage process:
 
-1.  **Stage 1: Clipping**
-    - The downloaded video is passed to `tool.py` to be clipped into 5 segments. These raw clips are saved in a speaker-specific folder inside `ted_clips_new/`.
+1.  **Stage 1: Create 5 candidate clips (VAD + strict vision filter)**
+    - We do not take blind, evenly spaced slices. Instead, `batch_ted_clipper.py` calls `tool.py` with `--num-clips 5 --clip-duration 30 --strict-person-only --detector yolo --avoid-slides`.
+    - `tool.py` extracts audio and runs Voice Activity Detection (VAD) to score 30-second windows by speech presence.
+    - On the top speech windows, a strict vision filter enforces single-person presence using YOLO if available, otherwise falling back to HOG.
+    - We pick the top non-overlapping windows and cut them with ffmpeg, saving to `ted_clips_new/{Speaker}/`.
 
 2.  **Stage 2: Filtering**
     - As soon as clips for a speaker are created, `batch_ted_clipper.py` launches a separate, parallel process using `process_single_speaker.py`.
     - This script runs the HOG person detector on each of the 5 clips for that speaker.
     - It uses the thresholds defined in `filter_config.py` to find the best clip with only one person.
     - If a valid clip is found, it is copied to the final `filtered_videos_2/` directory.
+
+### What is VAD?
+- **VAD (Voice Activity Detection)** is a lightweight algorithm that marks which short audio frames contain speech vs silence/noise.
+- We use it to rank candidate 30s windows so the clips start where someone is actually speaking.
+- Implementation in this repo:
+  - `tool.py` extracts audio and tries WebRTC VAD if available (`webrtcvad` package). If not installed, a simple energy-based fallback is used.
+  - This step is fast and does not require any large model.
 
 ## Key Files in the Project
 
